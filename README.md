@@ -14,11 +14,35 @@ construction** — enforced as Foundry invariants.
 
 | Component | Status |
 | --- | --- |
-| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 31 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
+| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 32 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + basket optimizer) | ✅ builds · 11 tests · runnable demo |
 | Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
 | CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
+| Live deployment | ✅ Sepolia, all contracts source-verified on Sourcify |
+
+---
+
+## Live on Sepolia (chainId 11155111)
+
+All contracts are deployed and **source-verified on [Sourcify](https://sourcify.dev)**. The hook owner is
+the deployer (admin functions live).
+
+| Contract | Address |
+| --- | --- |
+| **HelixHook** | [`0x0E00cAc14C70Cf2EA46b33fe17E55Ac02DEb5640`](https://sepolia.etherscan.io/address/0x0E00cAc14C70Cf2EA46b33fe17E55Ac02DEb5640) |
+| SettlementRegistry | [`0x8f450Fc17Fa1f84d8b69bC9816C543be503C8195`](https://sepolia.etherscan.io/address/0x8f450Fc17Fa1f84d8b69bC9816C543be503C8195) |
+| ReputationAccumulator | [`0x7584Ec7599c39600b92d663B95fD1887ee48D87D`](https://sepolia.etherscan.io/address/0x7584Ec7599c39600b92d663B95fD1887ee48D87D) |
+| CircuitBreaker | [`0x7FBB5B8D97F1B562C7e2b1fDD30A3BEFBc7fBdf2`](https://sepolia.etherscan.io/address/0x7FBB5B8D97F1B562C7e2b1fDD30A3BEFBc7fBdf2) |
+| MockOracle | [`0x3334aeA99e7B838bCecb7b3931245052639D4599`](https://sepolia.etherscan.io/address/0x3334aeA99e7B838bCecb7b3931245052639D4599) |
+| Value token (USDV, 18-dec) | [`0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD`](https://sepolia.etherscan.io/address/0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD) |
+| MockPoolManager | [`0x1259f0e1D2EB8152966b85318c0a71CeD258e692`](https://sepolia.etherscan.io/address/0x1259f0e1D2EB8152966b85318c0a71CeD258e692) |
+
+A live, permissionless **`submitMatch`** formed a 2-LP basket on-chain:
+[tx `0x35554f…`](https://sepolia.etherscan.io/tx/0x35554f84611091df678840440a0d5b3597c970dac1242657488960434f971b1d)
+(matchId `0xfcbc99…a7a0`, demo pool `0xc5c1d5…da2e5`). Full record, config and tx hashes in
+[`deployments/sepolia.json`](deployments/sepolia.json). A copy-paste UI brief for Lovable/v0 is in
+[`docs/LOVABLE_PROMPT.md`](docs/LOVABLE_PROMPT.md).
 
 ---
 
