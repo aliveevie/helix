@@ -2,11 +2,11 @@
   "comment": "Helix deployment on Sepolia (chainId 11155111). Override per-environment via VITE_* env vars. Set all to zero for mock mode.",
   "chainId": 11155111,
   "addresses": {
-    "hook": "0xdDE951F94FbC849DbeED95e94da9212A03bFd640",
-    "registry": "0x9D58866bb734112B002DaC611B49Dd5d78FD5cAE",
-    "reputation": "0x00Fd7BaDfF7815b5130B4F8D1B490592c3F4264A",
-    "breaker": "0xEA49059f8c184e925b589Ba316a4675040cCAC7F",
-    "oracle": "0xbf9980cABDC99faa074aE61121717b1F0b1C2876",
+    "hook": "0x0E00cAc14C70Cf2EA46b33fe17E55Ac02DEb5640",
+    "registry": "0x8f450Fc17Fa1f84d8b69bC9816C543be503C8195",
+    "reputation": "0x7584Ec7599c39600b92d663B95fD1887ee48D87D",
+    "breaker": "0x7FBB5B8D97F1B562C7e2b1fDD30A3BEFBc7fBdf2",
+    "oracle": "0x3334aeA99e7B838bCecb7b3931245052639D4599",
     "valueToken": "0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD",
     "poolManager": "0x1259f0e1D2EB8152966b85318c0a71CeD258e692"
   }
