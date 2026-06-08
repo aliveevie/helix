@@ -14,10 +14,11 @@ construction** — enforced as Foundry invariants.
 
 | Component | Status |
 | --- | --- |
-| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 26 Foundry tests (unit · fuzz · invariant) |
+| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 28 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + basket optimizer) | ✅ builds · 11 tests · runnable demo |
 | Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
+| CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
 
 ---
 
@@ -168,6 +169,7 @@ pay out more than it escrows.
 | **Oracle resistance** — revert on Chainlink↔TWAP divergence | `test/unit/ControlPlane` |
 | **Breaker hysteresis** — separate entry/exit thresholds, RSC-gated resume | `test/unit/ControlPlane` |
 | **RSC authentication** — `triggerRebalance` only from the registered proxy | `test/unit/ControlPlane` |
+| **Reactive loop (E2E)** — hook's real events → RSC → real callback bytes → hook pauses/resumes | `test/integration/ReactiveLoop` |
 
 ---
 

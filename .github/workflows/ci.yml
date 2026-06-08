@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contracts:
+    name: Foundry (build · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Vendor dependencies
+        run: ./setup.sh
+
+      - name: forge build
+        run: forge build --sizes
+
+      - name: forge test
+        run: forge test -vv
+
+  offchain:
+    name: SDK · Engine · Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build SDK
+        run: pnpm --filter @helix/sdk build
+
+      - name: Test SDK
+        run: pnpm --filter @helix/sdk test
+
+      - name: Typecheck + test matching engine
+        run: |
+          pnpm --filter @helix/matching-engine typecheck
+          pnpm --filter @helix/matching-engine test
+
+      - name: Typecheck + build frontend
+        run: |
+          pnpm --filter @helix/frontend typecheck
+          pnpm --filter @helix/frontend build
