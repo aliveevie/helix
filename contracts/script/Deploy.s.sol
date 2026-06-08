@@ -54,13 +54,18 @@ contract Deploy is Script {
             initialized: false
         });
 
+        // Admin must be passed explicitly: CREATE2 makes msg.sender the factory, not the deployer.
+        address admin = vm.envOr("DEPLOYER_ADDRESS", msg.sender);
+        require(admin != address(0), "Deploy: set DEPLOYER_ADDRESS");
+
         bytes memory args = abi.encode(
             IPoolManager(poolManager),
             IHelixOracle(address(oracle)),
             ICircuitBreaker(address(breaker)),
             IReputation(address(reputation)),
             ISettlementRegistry(address(registry)),
-            cfg
+            cfg,
+            admin
         );
         (address hookAddr, bytes32 salt) =
             HookMiner.find(CREATE2_DEPLOYER, HOOK_FLAGS, type(HelixHook).creationCode, args);
@@ -71,7 +76,8 @@ contract Deploy is Script {
             ICircuitBreaker(address(breaker)),
             IReputation(address(reputation)),
             ISettlementRegistry(address(registry)),
-            cfg
+            cfg,
+            admin
         );
         require(address(hook) == hookAddr, "Deploy: hook address mismatch");
 

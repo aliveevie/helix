@@ -137,6 +137,21 @@ contract HelixFlow is HelixBase {
         assertEq(m.enteredCount, 1, "alice removed from basket");
     }
 
+    function test_owner_isExplicitConstructorArg() public {
+        // Owner is the address passed at construction (here the test), NOT msg.sender — this guards the
+        // CREATE2 footgun where msg.sender is the deterministic factory.
+        assertEq(hook.owner(), address(this), "owner must be the explicit admin");
+
+        // Owner-gated function works for the owner...
+        hook.setReactiveProxy(address(0xBEEF));
+        assertEq(hook.reactiveCallbackProxy(), address(0xBEEF));
+
+        // ...and reverts for a non-owner.
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(bytes("HELIX: only owner"));
+        hook.setReactiveProxy(address(0x1234));
+    }
+
     function test_submitMatch_revertsOnDuplicateLp() public {
         // Same LP signs two intents (distinct nonces) and both land in one basket ⇒ rejected.
         HelixTypes.Intent memory i1 = buildIntent(alice, 2000e18, 5000, 0, 1);

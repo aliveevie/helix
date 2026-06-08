@@ -77,13 +77,16 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         _;
     }
 
+    /// @param owner_ admin address; passed explicitly because CREATE2 deployment makes `msg.sender` the
+    ///        deterministic factory, not the deployer.
     constructor(
         IPoolManager _poolManager,
         IHelixOracle _oracle,
         ICircuitBreaker _breaker,
         IReputation _reputation,
         ISettlementRegistry _registry,
-        HelixTypes.PoolConfig memory _defaultConfig
+        HelixTypes.PoolConfig memory _defaultConfig,
+        address owner_
     ) BaseHook(_poolManager) EIP712("Helix", "1") {
         oracle = _oracle;
         breaker = _breaker;
@@ -91,8 +94,9 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         registry = _registry;
         require(_defaultConfig.maxDivergenceBps > 0 && _defaultConfig.maxDivergenceBps <= BPS, "HELIX: cfg div");
         require(_defaultConfig.rho <= BPS, "HELIX: cfg rho");
+        require(owner_ != address(0), "HELIX: owner");
         defaultConfig = _defaultConfig;
-        owner = msg.sender;
+        owner = owner_;
     }
 
     // ============================================================ Admin

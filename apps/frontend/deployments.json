@@ -1,13 +1,13 @@
 {
-  "comment": "Placeholder Helix deployment addresses. Override per-environment via VITE_* env vars (see README). All zero by default so the app runs in mock mode with no chain.",
-  "chainId": 31337,
+  "comment": "Helix deployment on Sepolia (chainId 11155111). Override per-environment via VITE_* env vars. Set all to zero for mock mode.",
+  "chainId": 11155111,
   "addresses": {
-    "hook": "0x0000000000000000000000000000000000000000",
-    "registry": "0x0000000000000000000000000000000000000000",
-    "reputation": "0x0000000000000000000000000000000000000000",
-    "breaker": "0x0000000000000000000000000000000000000000",
-    "oracle": "0x0000000000000000000000000000000000000000",
-    "valueToken": "0x0000000000000000000000000000000000000000",
-    "poolManager": "0x0000000000000000000000000000000000000000"
+    "hook": "0xdDE951F94FbC849DbeED95e94da9212A03bFd640",
+    "registry": "0x9D58866bb734112B002DaC611B49Dd5d78FD5cAE",
+    "reputation": "0x00Fd7BaDfF7815b5130B4F8D1B490592c3F4264A",
+    "breaker": "0xEA49059f8c184e925b589Ba316a4675040cCAC7F",
+    "oracle": "0xbf9980cABDC99faa074aE61121717b1F0b1C2876",
+    "valueToken": "0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD",
+    "poolManager": "0x1259f0e1D2EB8152966b85318c0a71CeD258e692"
   }
 }

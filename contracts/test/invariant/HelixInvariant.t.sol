@@ -266,7 +266,7 @@ contract HelixInvariant is Test {
         address hookAddr = address(uint160(HOOK_FLAGS) | (uint160(0x4444) << 144));
         deployCodeTo(
             "HelixHook.sol:HelixHook",
-            abi.encode(IPoolManager(address(pm)), oracle, breaker, reputation, registry, cfg),
+            abi.encode(IPoolManager(address(pm)), oracle, breaker, reputation, registry, cfg, address(this)),
             hookAddr
         );
         hook = HelixHook(hookAddr);

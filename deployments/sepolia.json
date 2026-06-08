@@ -1,0 +1,22 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0x78A17E44c8839AA1244CB4953E6477dB55694B87",
+  "contracts": {
+    "HelixHook": "0xdDE951F94FbC849DbeED95e94da9212A03bFd640",
+    "SettlementRegistry": "0x9D58866bb734112B002DaC611B49Dd5d78FD5cAE",
+    "ReputationAccumulator": "0x00Fd7BaDfF7815b5130B4F8D1B490592c3F4264A",
+    "CircuitBreaker": "0xEA49059f8c184e925b589Ba316a4675040cCAC7F",
+    "MockOracle": "0xbf9980cABDC99faa074aE61121717b1F0b1C2876",
+    "ValueToken": "0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD",
+    "MockPoolManager": "0x1259f0e1D2EB8152966b85318c0a71CeD258e692"
+  },
+  "config": {
+    "epochLength": 86400,
+    "rho": 7500,
+    "marginRatioBps": 500,
+    "maxDivergenceBps": 300,
+    "settlerFeeBps": 50
+  },
+  "explorer": "https://sepolia.etherscan.io"
+}
