@@ -167,6 +167,47 @@ contract HelixHandler is Test {
         } catch {}
     }
 
+    /// @notice Create a 2-member match, enter only one member, then cancel it after the entry window.
+    function createPartialThenCancel(uint256 seed) public {
+        address lp0 = lps[seed % lps.length];
+        uint256 k0 = pks[seed % lps.length];
+        address lp1 = lps[(seed + 1) % lps.length];
+        uint256 k1 = pks[(seed + 1) % lps.length];
+        if (lp0 == lp1) return;
+
+        HelixTypes.Intent[] memory intents = new HelixTypes.Intent[](2);
+        bytes[] memory sigs = new bytes[](2);
+        intents[0] = _intent(lp0, nonceCursor++);
+        intents[1] = _intent(lp1, nonceCursor++);
+        sigs[0] = _sign(k0, intents[0]);
+        sigs[1] = _sign(k1, intents[1]);
+
+        try hook.submitMatch(intents, sigs) returns (bytes32 matchId) {
+            uint256 notional = bound(uint256(keccak256(abi.encode(seed, "pc"))), 100e18, 30_000e18);
+            uint256 p0 = bound(uint256(keccak256(abi.encode(seed, "pcp"))), 0.7e18, 1.5e18);
+            _enter(matchId, lp0, notional, p0); // only lp0 enters ⇒ stuck PENDING
+
+            vm.warp(block.timestamp + 2 hours); // past the entry window
+            uint256 balBefore = valueToken.balanceOf(address(registry));
+            try hook.cancelMatch(matchId) {
+                totalPaidOut += balBefore - valueToken.balanceOf(address(registry));
+            } catch {}
+        } catch {}
+    }
+
+    function _intent(address lp, uint256 nonce) internal view returns (HelixTypes.Intent memory) {
+        return HelixTypes.Intent({
+            lp: lp,
+            pool: poolId,
+            maxDriftBps: 30_000,
+            minDuration: 1 hours,
+            maxSize: 80_000e18,
+            repFloor: 0,
+            nonce: nonce,
+            deadline: uint64(block.timestamp + 365 days)
+        });
+    }
+
     function _removeOpen(uint256 idx) internal {
         openMatches[idx] = openMatches[openMatches.length - 1];
         openMatches.pop();

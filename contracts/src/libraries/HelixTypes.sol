@@ -17,7 +17,8 @@ library HelixTypes {
         NONE, // never created
         PENDING, // created, awaiting all members to enter liquidity
         OPEN, // all members entered, epoch running
-        SETTLED // redistributed, terminal & idempotent
+        SETTLED, // redistributed, terminal & idempotent
+        CANCELLED // never opened within the entry window; margins refunded, terminal
 
     }
 
@@ -57,6 +58,7 @@ library HelixTypes {
     /// @notice A matched basket.
     struct Match {
         PoolId pool; //            pool the basket lives in (single-chain leg)
+        uint64 createdAt; //       submitMatch timestamp; bounds the entry window
         uint64 epochEnd; //        settlement becomes permissionless at/after this time
         uint64 minDuration; //     max of members' minDuration; drives epochEnd at open
         uint16 rho; //             mutualization coefficient (bps, 0..10_000)

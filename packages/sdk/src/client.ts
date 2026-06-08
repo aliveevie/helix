@@ -127,4 +127,17 @@ export class HelixClient {
       args: [matchId],
     });
   }
+
+  /** Permissionlessly cancel a PENDING match stuck past its entry window (refunds entered margins). */
+  async cancelMatch(matchId: Hex, account?: Account): Promise<Hex> {
+    const { wc, account: acct } = this.requireWallet(account);
+    return wc.writeContract({
+      chain: wc.chain,
+      account: acct,
+      address: this.addresses.hook,
+      abi: abis.HelixHook,
+      functionName: "cancelMatch",
+      args: [matchId],
+    });
+  }
 }

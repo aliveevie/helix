@@ -53,4 +53,5 @@ export enum MatchStatus {
   PENDING = 1,
   OPEN = 2,
   SETTLED = 3,
+  CANCELLED = 4,
 }

@@ -137,6 +137,48 @@ contract HelixFlow is HelixBase {
         assertEq(m.enteredCount, 1, "alice removed from basket");
     }
 
+    function test_cancelMatch_refundsStuckPartialEntry() public {
+        HelixTypes.Intent memory ia = buildIntent(alice, 2000e18, 5000, 0, 1);
+        HelixTypes.Intent memory ib = buildIntent(bob, 2000e18, 5000, 0, 2);
+        HelixTypes.Intent[] memory intents = new HelixTypes.Intent[](2);
+        bytes[] memory sigs = new bytes[](2);
+        intents[0] = ia;
+        intents[1] = ib;
+        sigs[0] = signIntent(alicePk, ia);
+        sigs[1] = signIntent(bobPk, ib);
+        bytes32 matchId = hook.submitMatch(intents, sigs);
+
+        // Only alice enters; bob never does ⇒ the match is stuck PENDING with alice's margin escrowed.
+        oracle.setPrice(poolId, 1e18);
+        enterBalanced(matchId, alice, 1000e18);
+
+        HelixTypes.Match memory m = hook.getMatch(matchId);
+        assertEq(uint8(m.status), uint8(HelixTypes.MatchStatus.PENDING));
+        uint256 marginA = registry.marginOf(matchId, alice);
+        assertGt(marginA, 0);
+
+        // Cannot cancel while the entry window is still open.
+        vm.expectRevert(IHelixHook.EntryWindowOpen.selector);
+        hook.cancelMatch(matchId);
+
+        // After the window, anyone can cancel; alice is refunded in full (no penalty — basket never opened).
+        uint256 a0 = valueToken.balanceOf(alice);
+        vm.warp(block.timestamp + hook.entryWindow() + 1);
+        hook.cancelMatch(matchId);
+
+        assertEq(valueToken.balanceOf(alice) - a0, marginA, "alice fully refunded");
+        assertEq(registry.marginOf(matchId, alice), 0);
+        m = hook.getMatch(matchId);
+        assertEq(uint8(m.status), uint8(HelixTypes.MatchStatus.CANCELLED));
+    }
+
+    function test_cancelMatch_revertsOnOpenMatch() public {
+        bytes32 matchId = _open2();
+        vm.warp(block.timestamp + hook.entryWindow() + 1);
+        vm.expectRevert(IHelixHook.NotPending.selector);
+        hook.cancelMatch(matchId);
+    }
+
     function test_beforeRemoveLiquidity_protectsOpenMatch() public {
         bytes32 matchId = _open2();
         // hookData carrying the open matchId must block mid-epoch withdrawal.

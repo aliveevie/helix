@@ -15,6 +15,7 @@ interface IHelixHook {
     event MatchSettled(bytes32 indexed matchId, uint256 p1, uint256 ilTotal, address settler);
     event RebalanceTriggered(bytes32 indexed matchId, HelixTypes.RebalanceAction action);
     event EarlyExit(bytes32 indexed matchId, address indexed lp, uint256 forfeited);
+    event MatchCancelled(bytes32 indexed matchId);
 
     error NotReactive();
     error BadSignature(uint256 index);
@@ -27,6 +28,8 @@ interface IHelixHook {
     error OracleDivergence();
     error AlreadySettled();
     error PositionInOpenMatch();
+    error NotPending();
+    error EntryWindowOpen();
 
     /// @notice Permissionlessly create a basket from N signed intents. Re-verifies every signature,
     ///         deadline, nonce and constraint on-chain; pulls each member's margin into escrow.
@@ -36,6 +39,10 @@ interface IHelixHook {
 
     /// @notice Permissionlessly settle an expired, open match; redistributes IL and pays a settler fee.
     function settle(bytes32 matchId) external;
+
+    /// @notice Permissionlessly cancel a PENDING match that never opened within the entry window,
+    ///         refunding every entered member's margin in full. Prevents margin lock from partial entry.
+    function cancelMatch(bytes32 matchId) external;
 
     /// @notice RSC-only rebalance callback (RE_MATCH / PAUSE / RESUME).
     function triggerRebalance(bytes32 matchId, uint8 action) external;

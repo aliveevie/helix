@@ -14,7 +14,7 @@ construction** — enforced as Foundry invariants.
 
 | Component | Status |
 | --- | --- |
-| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 28 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
+| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 30 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + basket optimizer) | ✅ builds · 11 tests · runnable demo |
 | Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
@@ -68,7 +68,7 @@ helix/
 ├── contracts/            Foundry project (Solidity 0.8.26, v4-core types)
 │   ├── src/              hook · registry · reputation · breaker · libraries · reactive · mocks
 │   ├── script/Deploy.s.sol
-│   └── test/             unit · fuzz · invariant
+│   └── test/             unit · fuzz · invariant · integration · fork
 ├── packages/
 │   ├── sdk/              @helix/sdk — EIP-712 intents, ABIs, typed HelixClient (viem)
 │   └── matching-engine/  @helix/matching-engine — correlation matrix + basket optimizer + CLI
@@ -85,7 +85,7 @@ helix/
 ```bash
 cd contracts
 ./setup.sh            # vendors forge-std, v4-core, v4-periphery, openzeppelin, solmate
-forge test            # 26 passing: unit, fuzz, invariant
+forge test            # 30 passing: unit, fuzz, invariant, integration
 forge script script/Deploy.s.sol      # dry-run: mines a permission-encoding hook address + wires everything
 ```
 

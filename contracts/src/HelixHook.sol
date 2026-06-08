@@ -48,6 +48,7 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
     address public owner;
     address public reactiveCallbackProxy; // the only address allowed to call triggerRebalance
     uint16 public earlyExitForfeitBps = 2_000; // 20% margin slice forfeited on early exit
+    uint64 public entryWindow = 1 hours; // after this, an unopened PENDING match can be cancelled
 
     HelixTypes.PoolConfig public defaultConfig;
 
@@ -115,6 +116,11 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
     function setEarlyExitForfeitBps(uint16 bps) external onlyOwner {
         require(bps <= 5_000, "HELIX: forfeit");
         earlyExitForfeitBps = bps;
+    }
+
+    function setEntryWindow(uint64 window) external onlyOwner {
+        require(window > 0, "HELIX: window");
+        entryWindow = window;
     }
 
     // ============================================================ Hook permissions
@@ -252,6 +258,7 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         matchId = keccak256(abi.encode(address(this), block.chainid, ++_matchNonce, pool, lps));
         HelixTypes.Match storage m = _matches[matchId];
         m.pool = pool;
+        m.createdAt = uint64(block.timestamp);
         m.rho = cfg.rho;
         m.requiredRatioBps = requiredRatioBps;
         m.minDuration = maxMinDuration;
@@ -396,6 +403,26 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         reputation.penalize(msg.sender, 2);
         registry.forfeitMargin(matchId, msg.sender, earlyExitForfeitBps);
         emit EarlyExit(matchId, msg.sender, earlyExitForfeitBps);
+    }
+
+    /// @inheritdoc IHelixHook
+    /// @dev Refunds entered members in full (0-bps forfeit): the basket never started, so no penalty.
+    function cancelMatch(bytes32 matchId) external override nonReentrant {
+        HelixTypes.Match storage m = _matches[matchId];
+        if (m.status != HelixTypes.MatchStatus.PENDING) revert NotPending();
+        if (block.timestamp <= uint256(m.createdAt) + entryWindow) revert EntryWindowOpen();
+
+        m.status = HelixTypes.MatchStatus.CANCELLED; // effects before external calls
+
+        for (uint256 i; i < m.keys.length; ++i) {
+            bytes32 key = m.keys[i];
+            if (key == bytes32(0)) continue; // member never entered
+            HelixTypes.PositionRecord storage pos = positions[key];
+            if (!pos.entered) continue;
+            pos.entered = false;
+            registry.forfeitMargin(matchId, pos.lp, 0); // full refund
+        }
+        emit MatchCancelled(matchId);
     }
 
     // ============================================================ Reactive control plane
