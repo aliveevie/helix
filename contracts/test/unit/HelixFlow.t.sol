@@ -137,6 +137,20 @@ contract HelixFlow is HelixBase {
         assertEq(m.enteredCount, 1, "alice removed from basket");
     }
 
+    function test_submitMatch_revertsOnDuplicateLp() public {
+        // Same LP signs two intents (distinct nonces) and both land in one basket ⇒ rejected.
+        HelixTypes.Intent memory i1 = buildIntent(alice, 2000e18, 5000, 0, 1);
+        HelixTypes.Intent memory i2 = buildIntent(alice, 2000e18, 5000, 0, 2);
+        HelixTypes.Intent[] memory intents = new HelixTypes.Intent[](2);
+        bytes[] memory sigs = new bytes[](2);
+        intents[0] = i1;
+        intents[1] = i2;
+        sigs[0] = signIntent(alicePk, i1);
+        sigs[1] = signIntent(alicePk, i2);
+        vm.expectRevert(abi.encodeWithSelector(IHelixHook.ConstraintViolated.selector, 0));
+        hook.submitMatch(intents, sigs);
+    }
+
     function test_cancelMatch_refundsStuckPartialEntry() public {
         HelixTypes.Intent memory ia = buildIntent(alice, 2000e18, 5000, 0, 1);
         HelixTypes.Intent memory ib = buildIntent(bob, 2000e18, 5000, 0, 2);

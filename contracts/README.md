@@ -28,7 +28,7 @@ test/                       unit · fuzz · invariant
 ```bash
 ./setup.sh          # vendors forge-std, v4-core, v4-periphery, openzeppelin, solmate into lib/
 forge build
-forge test          # 30 tests: unit, fuzz, invariant, integration
+forge test          # 31 tests: unit, fuzz, invariant, integration
 forge test --gas-report
 FOUNDRY_PROFILE=deep forge test --match-path "test/invariant/*"   # deeper invariant campaign
 ```

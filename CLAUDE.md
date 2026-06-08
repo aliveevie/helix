@@ -15,7 +15,7 @@ picture; this file captures the non-obvious operational facts.
 
 ```bash
 # Contracts — deps are vendored via shallow clone and gitignored; run setup.sh after a fresh checkout.
-cd contracts && ./setup.sh && forge test          # 30 tests + 2 fork tests (skipped without RPC)
+cd contracts && ./setup.sh && forge test          # 31 tests + 2 fork tests (skipped without RPC)
 
 # JS workspace (pnpm)
 pnpm install

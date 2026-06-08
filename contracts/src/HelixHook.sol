@@ -248,9 +248,13 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
             if (it.minDuration > maxMinDuration) maxMinDuration = it.minDuration;
         }
 
-        // Counterparty reputation floor: every member must clear the strictest floor in the basket.
+        // Counterparty reputation floor + basket uniqueness: every member must clear the strictest floor,
+        // and an LP may not appear twice in the same basket (would alias to one position slot).
         for (uint256 i; i < n; ++i) {
             if (reputation.scoreOf(lps[i]) < maxRepFloor) revert ConstraintViolated(i);
+            for (uint256 j = i + 1; j < n; ++j) {
+                if (lps[i] == lps[j]) revert ConstraintViolated(i);
+            }
         }
 
         uint16 requiredRatioBps = _requiredRatioBps(cfg, worstDrift);
