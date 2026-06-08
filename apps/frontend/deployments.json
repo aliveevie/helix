@@ -1,0 +1,13 @@
+{
+  "comment": "Placeholder Helix deployment addresses. Override per-environment via VITE_* env vars (see README). All zero by default so the app runs in mock mode with no chain.",
+  "chainId": 31337,
+  "addresses": {
+    "hook": "0x0000000000000000000000000000000000000000",
+    "registry": "0x0000000000000000000000000000000000000000",
+    "reputation": "0x0000000000000000000000000000000000000000",
+    "breaker": "0x0000000000000000000000000000000000000000",
+    "oracle": "0x0000000000000000000000000000000000000000",
+    "valueToken": "0x0000000000000000000000000000000000000000",
+    "poolManager": "0x0000000000000000000000000000000000000000"
+  }
+}
