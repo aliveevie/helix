@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Address, Hex, Intent } from "@helix/sdk";
-import { type SignedIntent, formBaskets, toSubmitArgs } from "./optimizer.js";
+import { type SignedIntent, formBaskets, formCrossPoolBaskets, toSubmitArgs } from "./optimizer.js";
+import { correlationMatrix } from "./correlation.js";
 
 const POOL_A = ("0x" + "11".repeat(32)) as Hex;
 const POOL_B = ("0x" + "22".repeat(32)) as Hex;
@@ -52,6 +53,26 @@ describe("basket optimizer", () => {
       reputationOf: (lp) => (lp === trusted ? 500 : 0),
     });
     expect(baskets.length).toBe(0);
+  });
+
+  it("forms CROSS-POOL baskets that pair anti-correlated pools (correlation matrix is used)", () => {
+    const POOL_ETH = ("0x" + "e1".repeat(32)) as Hex;
+    const POOL_ARB = ("0x" + "a2".repeat(32)) as Hex;
+    // ETH and ARB return series are mirror images ⇒ correlation ≈ -1.
+    const cm = correlationMatrix({
+      eth: [0.02, -0.01, 0.03, -0.02, 0.01],
+      arb: [-0.02, 0.01, -0.03, 0.02, -0.01],
+    });
+    const feedOfPool = (p: Hex) => (p === POOL_ETH ? "eth" : "arb");
+
+    const items = [si(POOL_ETH, 1000, 2000), si(POOL_ARB, 1000, 2000)];
+    const baskets = formCrossPoolBaskets(items, cm, { feedOfPool, maxBasket: 2, minMembers: 2 });
+
+    expect(baskets.length).toBe(1);
+    const pools = new Set(baskets[0].members.map((m) => m.intent.pool));
+    expect(pools.size).toBe(2); // genuinely spans two pools
+    // anti-correlated pooling gives a large measured variance reduction
+    expect(baskets[0].varianceReductionPct).toBeGreaterThan(20);
   });
 
   it("forms a basket when reputation floors are met and reports variance reduction", () => {

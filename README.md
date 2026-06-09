@@ -14,9 +14,9 @@ construction** — enforced as Foundry invariants.
 
 | Component | Status |
 | --- | --- |
-| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 34 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
+| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 36 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
-| Matching engine (correlation + basket optimizer) | ✅ builds · 11 tests · runnable demo |
+| Matching engine (correlation + cross-pool optimizer + Monte-Carlo) | ✅ builds · 16 tests · runnable demo |
 | Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
 | CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
 | Live deployment | ✅ Sepolia, all contracts source-verified on Sourcify |
@@ -132,7 +132,7 @@ helix/
 ```bash
 cd contracts
 ./setup.sh            # vendors forge-std, v4-core, v4-periphery, openzeppelin, solmate
-forge test            # 34 passing + 3 fork (gated)
+forge test            # 36 passing + 3 fork (gated)
 forge script script/Deploy.s.sol      # dry-run: mines a permission-encoding hook address + wires everything
 ```
 
@@ -161,9 +161,10 @@ Cross-pool correlation matrix (trailing returns):
      WBTC/USD       0.65       1.00      -0.42
      ARB/USDC      -0.44      -0.42       1.00
 
-Formed 3 basket(s):
-  Basket 1  pool=ETH/USDC  members=3  div-score=18.3  repFloor=0
-  ...
+Cross-pool baskets (correlation-diversified, hedging across assets):
+  Basket 1:  ETH/USDC  +  ARB/USDC    div-score=46.8  (anti-correlated → strong hedge)
+  Basket 2:  WBTC/USDC +  ARB/USDC    div-score=46.2
+  Basket 3:  ETH/USDC  +  WBTC/USDC   div-score=2.9   (correlated → weak)
 
 Monte-Carlo: measured IL-variance reduction (5000 scenarios, σ=0.40)
   ρ=0.50  →  ex-ante IL variance falls 40%  (ex-post per slot: 44%, 16%)
@@ -247,10 +248,11 @@ pay out more than it escrows.
 
 ### Scope (what's real today vs roadmap)
 
-- **On-chain baskets are single-pool.** v1 mutualizes IL among LPs of the *same* pool who entered at
-  different prices/ranges — which already produces strong convergence (see the showcase: 0.45%→15.08%
-  dispersion → one shared rate). The matching engine *also* computes a cross-pool correlation matrix; its
-  on-chain use (cross-asset, correlation-diversified baskets) is the next milestone, not a current claim.
+- **Cross-pool baskets are live.** A basket can span multiple pools (different assets); each member is
+  priced at its *own* pool (oracle cross-checked vs that pool's TWAP), and mutualization runs over the
+  combined IL vector (`test/unit/CrossPool.t.sol`). The matching engine *uses* the correlation matrix to
+  pair anti-correlated pools (`formCrossPoolBaskets`: ARB↔ETH score ~47 vs ETH↔WBTC ~3). Cross-*chain*
+  (CCTP) coordination of such baskets is the remaining roadmap item.
 - **IL model is full-range CPMM**, a clean baseline for *relative* redistribution. A
   concentrated-liquidity-aware IL (and a fees term) is a planned refinement; the fork lifecycle already
   runs on real concentrated v4 positions and snapshots their actual token composition.

@@ -67,8 +67,6 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
     }
 
     mapping(PoolId => Obs) public obs;
-    mapping(bytes32 => uint256) public openCum; // matchId => cumulative at open
-    mapping(bytes32 => uint64) public openTs; //  matchId => timestamp at open
 
     uint256 internal _matchNonce;
 
@@ -231,21 +229,26 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         uint256 n = intents.length;
         require(n >= 2 && n == signatures.length, "HELIX: basket size");
 
-        PoolId pool = intents[0].pool;
-        HelixTypes.PoolConfig memory cfg = poolConfig[pool];
+        // Reference pool (pools[0]) drives basket-level config (ρ, margin ratio, epoch). Each member's
+        // OWN pool is validated and priced independently — baskets may span pools for cross-asset hedging.
+        PoolId refPool = intents[0].pool;
+        HelixTypes.PoolConfig memory cfg = poolConfig[refPool];
         require(cfg.initialized, "HELIX: pool uninit");
-        if (breaker.state(pool) != ICircuitBreaker.State.NORMAL) revert BreakerNotNormal();
 
         address[] memory lps = new address[](n);
         uint256[] memory sizes = new uint256[](n);
+        PoolId[] memory pools = new PoolId[](n);
         uint256 worstDrift;
         uint16 maxRepFloor;
         uint64 maxMinDuration;
 
         for (uint256 i; i < n; ++i) {
             HelixTypes.Intent calldata it = intents[i];
-            _consumeIntent(it, signatures[i], pool, i);
+            _consumeIntent(it, signatures[i], i);
+            if (!poolConfig[it.pool].initialized) revert ConstraintViolated(i);
+            if (breaker.state(it.pool) != ICircuitBreaker.State.NORMAL) revert BreakerNotNormal();
             lps[i] = it.lp;
+            pools[i] = it.pool;
             sizes[i] = it.maxSize; // notional cap; refined to actual at entry
             if (it.maxDriftBps > worstDrift) worstDrift = it.maxDriftBps;
             if (it.repFloor > maxRepFloor) maxRepFloor = it.repFloor;
@@ -263,9 +266,9 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
 
         uint16 requiredRatioBps = _requiredRatioBps(cfg, worstDrift);
 
-        matchId = keccak256(abi.encode(address(this), block.chainid, ++_matchNonce, pool, lps));
+        matchId = keccak256(abi.encode(address(this), block.chainid, ++_matchNonce, refPool, lps));
         HelixTypes.Match storage m = _matches[matchId];
-        m.pool = pool;
+        m.pool = refPool;
         m.createdAt = uint64(block.timestamp);
         m.rho = cfg.rho;
         m.requiredRatioBps = requiredRatioBps;
@@ -273,14 +276,14 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         m.status = HelixTypes.MatchStatus.PENDING;
         m.lps = lps;
         m.sizes = sizes;
+        m.pools = pools;
         m.keys = new bytes32[](n);
 
-        emit MatchSubmitted(matchId, pool, lps, sizes, cfg.rho);
+        emit MatchSubmitted(matchId, refPool, lps, sizes, cfg.rho);
     }
 
-    /// @dev Verify one intent's pool, deadline, size, nonce and EIP-712 signature, then consume the nonce.
-    function _consumeIntent(HelixTypes.Intent calldata it, bytes calldata sig, PoolId pool, uint256 i) internal {
-        if (PoolId.unwrap(it.pool) != PoolId.unwrap(pool)) revert ConstraintViolated(i);
+    /// @dev Verify one intent's deadline, size, nonce and EIP-712 signature, then consume the nonce.
+    function _consumeIntent(HelixTypes.Intent calldata it, bytes calldata sig, uint256 i) internal {
         if (block.timestamp > it.deadline) revert IntentExpired(i);
         if (it.maxSize == 0) revert ConstraintViolated(i);
         if (nonceUsed[it.lp][it.nonce]) revert NonceUsed(i);
@@ -296,9 +299,9 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
     function _enter(PoolId pool, bytes32 matchId, address lp, BalanceDelta delta) internal {
         HelixTypes.Match storage m = _matches[matchId];
         require(m.status == HelixTypes.MatchStatus.PENDING, "HELIX: not pending");
-        require(PoolId.unwrap(m.pool) == PoolId.unwrap(pool), "HELIX: wrong pool");
 
         uint256 idx = _memberIndex(m, lp);
+        require(PoolId.unwrap(m.pools[idx]) == PoolId.unwrap(pool), "HELIX: wrong pool");
 
         bytes32 key = _positionKey(lp, pool, matchId, idx);
         require(!positions[key].entered, "HELIX: entered");
@@ -312,14 +315,14 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         uint256 notional = y0 + Math.mulDiv(x0, p0, WAD);
         require(notional > 0 && notional <= m.sizes[idx], "HELIX: notional");
 
-        uint256 marginWad = Math.mulDiv(notional, m.requiredRatioBps, BPS);
-
         positions[key] = HelixTypes.PositionRecord({
             x0: x0,
             y0: y0,
             entryPrice: p0,
+            openCum: _currentCumulative(pool, uint64(block.timestamp)),
             entryTime: uint64(block.timestamp),
-            margin: marginWad,
+            margin: Math.mulDiv(notional, m.requiredRatioBps, BPS),
+            pool: pool,
             lp: lp,
             entered: true
         });
@@ -328,16 +331,14 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         m.sizes[idx] = notional; // refine cap → actual notional
         m.enteredCount += 1;
 
-        registry.depositMargin(matchId, lp, marginWad);
+        registry.depositMargin(matchId, lp, positions[key].margin);
         emit PositionEntered(matchId, lp, x0, y0, p0);
 
         if (m.enteredCount == m.lps.length) {
-            HelixTypes.PoolConfig memory cfg = poolConfig[pool];
+            HelixTypes.PoolConfig memory cfg = poolConfig[m.pool];
             uint64 dur = cfg.epochLength > m.minDuration ? cfg.epochLength : m.minDuration;
             m.epochEnd = uint64(block.timestamp) + dur;
             m.status = HelixTypes.MatchStatus.OPEN;
-            openCum[matchId] = _currentCumulative(pool, uint64(block.timestamp));
-            openTs[matchId] = uint64(block.timestamp);
             emit MatchOpened(matchId, m.epochEnd);
         }
     }
@@ -350,14 +351,8 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         if (m.status != HelixTypes.MatchStatus.OPEN) revert MatchNotOpen();
         if (block.timestamp < m.epochEnd) revert EpochNotEnded();
 
-        // Oracle-resistant price: cross-check Chainlink reference against the pool TWAP.
-        uint256 pChain = oracle.price(m.pool);
-        uint256 pTwap = _twapForMatch(matchId, m.pool, pChain);
-        uint256 diff = pChain > pTwap ? pChain - pTwap : pTwap - pChain;
-        if (Math.mulDiv(diff, BPS, pChain) > poolConfig[m.pool].maxDivergenceBps) revert OracleDivergence();
-        uint256 p1 = (pChain + pTwap) / 2; // minimum-disagreement midpoint
-
-        // Collect entered members, compute IL and adjustments over the live basket only.
+        // Collect entered members; price EACH at its OWN pool (oracle cross-checked vs that pool's TWAP),
+        // so a basket can hedge across assets. Mutualization over the combined IL vector is pool-agnostic.
         uint256 nEntered = m.enteredCount;
         require(nEntered > 0, "HELIX: empty basket");
         address[] memory lps = new address[](nEntered);
@@ -365,10 +360,13 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         uint256[] memory sizes = new uint256[](nEntered);
 
         uint256 ilTotal;
+        uint256 refP1;
         uint256 j;
         for (uint256 i; i < m.keys.length; ++i) {
             HelixTypes.PositionRecord storage pos = positions[m.keys[i]];
             if (!pos.entered) continue;
+            uint256 p1 = _settlePrice(pos);
+            if (j == 0) refP1 = p1;
             uint256 ili = ILMath.il(pos.x0, pos.y0, p1);
             lps[j] = pos.lp;
             il[j] = ili;
@@ -392,7 +390,7 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
             reputation.credit(lps[i], 1);
         }
 
-        emit MatchSettled(matchId, p1, ilTotal, msg.sender);
+        emit MatchSettled(matchId, refP1, ilTotal, msg.sender);
     }
 
     /// @notice Leave a live basket early: forfeit a margin slice and take a reputation penalty.
@@ -556,16 +554,30 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
         return o.cumulative + o.lastPrice * (ts - o.lastTs);
     }
 
-    /// @dev Time-weighted pool price over the match's life; falls back to the reference price if the
-    ///      pool has produced no usable observation window.
-    function _twapForMatch(bytes32 matchId, PoolId pool, uint256 fallbackPrice) internal view returns (uint256) {
-        uint64 t0 = openTs[matchId];
-        uint256 c0 = openCum[matchId];
+    /// @dev A member's settlement price: oracle reference for its pool, cross-checked against that pool's
+    ///      realized TWAP over the member's holding period; reverts if they diverge beyond the pool's δ.
+    function _settlePrice(HelixTypes.PositionRecord storage pos) internal view returns (uint256) {
+        PoolId pool = pos.pool;
+        uint256 pChain = oracle.price(pool);
+        require(pChain > 0, "HELIX: oracle=0");
+        uint256 pTwap = _twapForMember(pool, pos.openCum, pos.entryTime, pChain);
+        uint256 diff = pChain > pTwap ? pChain - pTwap : pTwap - pChain;
+        if (Math.mulDiv(diff, BPS, pChain) > poolConfig[pool].maxDivergenceBps) revert OracleDivergence();
+        return (pChain + pTwap) / 2; // minimum-disagreement midpoint
+    }
+
+    /// @dev Per-member time-weighted pool price over [entryTime, now]; falls back to `fallbackPrice` if
+    ///      the pool produced no usable observation window.
+    function _twapForMember(PoolId pool, uint256 openCum, uint64 entryTime, uint256 fallbackPrice)
+        internal
+        view
+        returns (uint256)
+    {
         uint64 nowTs = uint64(block.timestamp);
-        if (nowTs <= t0) return fallbackPrice;
+        if (nowTs <= entryTime) return fallbackPrice;
         uint256 cNow = _currentCumulative(pool, nowTs);
-        if (cNow <= c0) return fallbackPrice;
-        uint256 twap = (cNow - c0) / (nowTs - t0);
+        if (cNow <= openCum) return fallbackPrice;
+        uint256 twap = (cNow - openCum) / (nowTs - entryTime);
         return twap == 0 ? fallbackPrice : twap;
     }
 

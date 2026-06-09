@@ -1,6 +1,7 @@
 import type { Address, Hex } from "viem";
 import type { Intent } from "@helix/sdk";
 import { basketVariance, varianceReductionPct, weights } from "./portfolio.js";
+import { type CorrelationMatrix, corrOf } from "./correlation.js";
 
 export interface SignedIntent {
   intent: Intent;
@@ -94,6 +95,65 @@ export function formBaskets(signed: SignedIntent[], opts: OptimizerOptions = {})
   }
 
   // Best baskets first.
+  baskets.sort((a, b) => b.varianceReductionPct - a.varianceReductionPct);
+  return baskets;
+}
+
+export interface CrossPoolOptions extends OptimizerOptions {
+  /** Maps an on-chain poolId (bytes32) to the feed key used in the correlation matrix. */
+  feedOfPool: (pool: Hex) => string;
+}
+
+/**
+ * Form CROSS-POOL baskets that minimize aggregate IL variance using the real correlation matrix — the
+ * cross-asset hedge: members are grown from a seed by repeatedly adding the compatible member (distinct
+ * LP, reputation-clearing) whose pool is most *anti*-correlated with the basket, so pooled IL variance
+ * drops the most. Members may span pools; `pool` on the candidate is the reference (members[0]).
+ */
+export function formCrossPoolBaskets(signed: SignedIntent[], cm: CorrelationMatrix, opts: CrossPoolOptions): BasketCandidate[] {
+  const maxBasket = opts.maxBasket ?? 3;
+  const minMembers = opts.minMembers ?? 2;
+  const reputationOf = opts.reputationOf ?? (() => 0);
+  const feed = opts.feedOfPool;
+
+  const corrFor = (members: SignedIntent[]) => (i: number, j: number) =>
+    i === j ? 1 : corrOf(cm, feed(members[i].intent.pool), feed(members[j].intent.pool));
+
+  const pool = signed.slice().sort((a, b) => Number(b.intent.maxSize) - Number(a.intent.maxSize));
+  const baskets: BasketCandidate[] = [];
+
+  while (pool.length >= minMembers) {
+    const basket: SignedIntent[] = [pool.shift()!];
+    while (basket.length < maxBasket && pool.length > 0) {
+      let bestIdx = -1;
+      let bestVar = Infinity;
+      for (let i = 0; i < pool.length; i++) {
+        const trial = [...basket, pool[i]];
+        const ints = trial.map((s) => s.intent);
+        if (!satisfiesReputation(ints, reputationOf)) continue;
+        const v = basketVariance(ints, corrFor(trial));
+        if (v < bestVar) {
+          bestVar = v;
+          bestIdx = i;
+        }
+      }
+      if (bestIdx < 0) break;
+      basket.push(pool.splice(bestIdx, 1)[0]);
+    }
+    const intents = basket.map((s) => s.intent);
+    if (basket.length >= minMembers && satisfiesReputation(intents, reputationOf)) {
+      baskets.push({
+        pool: basket[0].intent.pool,
+        members: basket,
+        weights: weights(intents),
+        varianceReductionPct: varianceReductionPct(intents, corrFor(basket)),
+        expectedVariance: basketVariance(intents, corrFor(basket)),
+        repFloor: intents.reduce((m, it) => Math.max(m, it.repFloor), 0),
+      });
+    } else {
+      break;
+    }
+  }
   baskets.sort((a, b) => b.varianceReductionPct - a.varianceReductionPct);
   return baskets;
 }

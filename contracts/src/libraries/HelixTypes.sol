@@ -49,15 +49,18 @@ library HelixTypes {
         uint256 x0; //     entry token0 amount (WAD value-units)
         uint256 y0; //     entry token1 amount (WAD value-units)
         uint256 entryPrice; // P0, token1-per-token0 (WAD)
+        uint256 openCum; //    pool TWAP cumulative at entry (per-member, for cross-pool settlement)
         uint64 entryTime; //   snapshot timestamp
         uint256 margin; //     settlement margin posted (registry token native units)
+        PoolId pool; //        the pool this member's position lives in (baskets may span pools)
         address lp; //         owner
         bool entered; //       liquidity entry finalised
     }
 
-    /// @notice A matched basket.
+    /// @notice A matched basket. Members may span pools (cross-asset hedging); `pool` is the reference
+    ///         pool (members' pools are in `pools`, parallel to `lps`).
     struct Match {
-        PoolId pool; //            pool the basket lives in (single-chain leg)
+        PoolId pool; //            reference pool (pools[0]); used for RSC rebalance + events
         uint64 createdAt; //       submitMatch timestamp; bounds the entry window
         uint64 epochEnd; //        settlement becomes permissionless at/after this time
         uint64 minDuration; //     max of members' minDuration; drives epochEnd at open
@@ -66,9 +69,10 @@ library HelixTypes {
         uint32 enteredCount; //    members that have finalised liquidity entry
         MatchStatus status; //
         RebalanceAction pending; // queued RSC action
-        address[] lps; //          member LPs (parallel to keys/sizes)
+        address[] lps; //          member LPs (parallel to keys/sizes/pools)
         bytes32[] keys; //         member position keys (set at entry)
         uint256[] sizes; //        member notionals (WAD): maxSize caps at submit, actual at entry
+        PoolId[] pools; //         each member's pool (parallel to lps); baskets may span pools
     }
 
     /// @notice Per-pool configuration bound at `afterInitialize`.

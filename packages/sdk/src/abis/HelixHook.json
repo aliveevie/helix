@@ -1168,6 +1168,11 @@
             "name": "sizes",
             "type": "uint256[]",
             "internalType": "uint256[]"
+          },
+          {
+            "name": "pools",
+            "type": "bytes32[]",
+            "internalType": "PoolId[]"
           }
         ]
       }
@@ -1221,44 +1226,6 @@
       },
       {
         "name": "lastTs",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "openCum",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "openTs",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
         "type": "uint64",
         "internalType": "uint64"
       }
@@ -1423,6 +1390,11 @@
         "internalType": "uint256"
       },
       {
+        "name": "openCum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "entryTime",
         "type": "uint64",
         "internalType": "uint64"
@@ -1431,6 +1403,11 @@
         "name": "margin",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "pool",
+        "type": "bytes32",
+        "internalType": "PoolId"
       },
       {
         "name": "lp",

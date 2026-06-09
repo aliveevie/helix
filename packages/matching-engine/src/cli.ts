@@ -8,7 +8,14 @@
 import { type Address, type Hex, keccak256, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { buildIntent, helixDomain, IntentEip712Types, type Intent } from "@helix/sdk";
-import { MatchingEngine, SyntheticPriceProvider, lognormalPrices, simulateBasket, type SignedIntent } from "./index.js";
+import {
+  MatchingEngine,
+  SyntheticPriceProvider,
+  formCrossPoolBaskets,
+  lognormalPrices,
+  simulateBasket,
+  type SignedIntent,
+} from "./index.js";
 
 const HOOK = "0x1640000000000000000000000000000000004444" as Address;
 const CHAIN_ID = 1301;
@@ -99,6 +106,19 @@ async function main() {
     });
     console.log("");
   });
+
+  // Cross-pool baskets: the matching engine USES the correlation matrix to hedge across assets.
+  const crossPool = formCrossPoolBaskets([...engine.mempool], correlation, {
+    feedOfPool: (p) => keyToName(p as string),
+    maxBasket: 2,
+    minMembers: 2,
+  });
+  console.log("\x1b[36m═══ Cross-pool baskets (correlation-diversified, hedging across assets) ═══\x1b[0m");
+  crossPool.forEach((b, i) => {
+    const poolsList = b.members.map((m) => keyToName(m.intent.pool)).join("  +  ");
+    console.log(`  Basket ${i + 1}:  ${poolsList}   div-score=\x1b[32m${b.varianceReductionPct.toFixed(1)}\x1b[0m (from the live correlation matrix)`);
+  });
+  console.log("");
 
   // Monte-Carlo: MEASURED IL-variance reduction (not an assumption).
   const prices = lognormalPrices(5000, 0.4, 7);

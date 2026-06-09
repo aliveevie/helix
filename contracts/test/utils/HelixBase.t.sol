@@ -108,9 +108,17 @@ abstract contract HelixBase is Test {
         view
         returns (HelixTypes.Intent memory)
     {
+        return buildIntentInPool(lp, poolId, size, driftBps, repFloor, nonce);
+    }
+
+    function buildIntentInPool(address lp, PoolId pool_, uint128 size, uint256 driftBps, uint16 repFloor, uint256 nonce)
+        internal
+        view
+        returns (HelixTypes.Intent memory)
+    {
         return HelixTypes.Intent({
             lp: lp,
-            pool: poolId,
+            pool: pool_,
             maxDriftBps: driftBps,
             minDuration: 1 hours,
             maxSize: size,
@@ -118,6 +126,23 @@ abstract contract HelixBase is Test {
             nonce: nonce,
             deadline: uint64(block.timestamp + 1 days)
         });
+    }
+
+    /// @notice Create + bind a second pool (same tokens, different fee) sharing the hook, return its id.
+    function initSecondPool(uint24 fee, int24 tickSpacing) internal returns (PoolKey memory k, PoolId id) {
+        k = PoolKey({currency0: key.currency0, currency1: key.currency1, fee: fee, tickSpacing: tickSpacing, hooks: key.hooks});
+        id = k.toId();
+        vm.prank(address(pm));
+        hook.afterInitialize(address(this), k, sqrtPriceFromWad(1e18), 0);
+    }
+
+    /// @notice Drive afterAddLiquidity for `lp` into a specific pool `k` (for cross-pool baskets).
+    function enterMemberInPool(PoolKey memory k, bytes32 matchId, address lp, uint256 x0, uint256 y0) internal {
+        BalanceDelta delta = toBalanceDelta(-int128(int256(x0)), -int128(int256(y0)));
+        ModifyLiquidityParams memory params =
+            ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1e18, salt: bytes32(0)});
+        vm.prank(address(pm));
+        hook.afterAddLiquidity(lp, k, params, delta, toBalanceDelta(0, 0), abi.encode(matchId, lp));
     }
 
     function signIntent(uint256 pk, HelixTypes.Intent memory intent) internal view returns (bytes memory) {
