@@ -231,6 +231,9 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
 
         // Reference pool (pools[0]) drives basket-level config (ρ, margin ratio, epoch). Each member's
         // OWN pool is validated and priced independently — baskets may span pools for cross-asset hedging.
+        // NOTE: conservation/solvency hold for ANY pools (the registry is unit-agnostic), but cross-pool
+        // redistribution is economically meaningful only when pools share a quote/numeraire (the margin
+        // token), so ILs are comparable. The matching engine enforces this when forming baskets.
         PoolId refPool = intents[0].pool;
         HelixTypes.PoolConfig memory cfg = poolConfig[refPool];
         require(cfg.initialized, "HELIX: pool uninit");

@@ -257,6 +257,10 @@ pay out more than it escrows.
   combined IL vector (`test/unit/CrossPool.t.sol`). The matching engine *uses* the correlation matrix to
   pair anti-correlated pools (`formCrossPoolBaskets`: ARB↔ETH score ~47 vs ETH↔WBTC ~3). Cross-*chain*
   (CCTP) coordination of such baskets is the remaining roadmap item.
+- **Cross-pool baskets share a numeraire.** Conservation/solvency hold for *any* pools (proven by the
+  cross-pool invariants), but cross-asset redistribution is economically meaningful only when the basket's
+  pools share a quote token (the margin token), so each member's IL is comparable — the matching engine
+  enforces this. Cross-numeraire baskets would need an FX conversion (roadmap).
 - **IL model is full-range CPMM**, a clean baseline for *relative* redistribution. A
   concentrated-liquidity-aware IL (and a fees term) is a planned refinement; the fork lifecycle already
   runs on real concentrated v4 positions and snapshots their actual token composition.
