@@ -14,7 +14,7 @@ construction** — enforced as Foundry invariants.
 
 | Component | Status |
 | --- | --- |
-| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 32 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
+| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 33 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + basket optimizer) | ✅ builds · 11 tests · runnable demo |
 | Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
@@ -109,7 +109,7 @@ helix/
 ```bash
 cd contracts
 ./setup.sh            # vendors forge-std, v4-core, v4-periphery, openzeppelin, solmate
-forge test            # 31 passing: unit, fuzz, invariant, integration
+forge test            # 33 passing: unit, fuzz, invariant, integration
 forge script script/Deploy.s.sol      # dry-run: mines a permission-encoding hook address + wires everything
 ```
 
@@ -186,7 +186,8 @@ pay out more than it escrows.
 
 | Invariant | Test |
 | --- | --- |
-| **Conservation** — `Σ payouts ≤ Σ margins (+ surplus)` | `test/invariant` (16 384 calls), `test/fuzz` (512 runs), `test/unit/HelixFlow` |
+| **Conservation** — `Σ payouts ≤ Σ margins (+ surplus)` | `test/invariant` (16 384 calls), `test/fuzz` (2 000 runs), `test/unit/HelixFlow` |
+| **Settlement solvency** — ρ is bounded to posted margins so `settle()` never under-funds a member (zero-sum preserved; ρ only eases in extreme drift) | `test/fuzz` (worst-corner + fuzz) |
 | **Zero-sum** — `Σ adjustments == 0` exactly, all inputs | `test/unit/MathUnit` (fuzz) |
 | **Margin solvency** — escrow backs every live obligation | `test/invariant` |
 | **Settlement idempotency** — `SETTLED` cannot re-settle | `test/invariant`, `test/unit/HelixFlow` |

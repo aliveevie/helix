@@ -19,6 +19,48 @@ contract ConservationFuzz is HelixBase {
         }
     }
 
+    /// @notice Deterministic worst corner: all members enter at the low price and settle at the high
+    ///         price (max hold-value growth ⇒ max absolute IL). Margin sized on notional cannot cover a
+    ///         fixed ratio here, so this would revert "SR: insolvent member" without the ρ solvency bound.
+    function test_settlement_solventUnderExtremeDrift() public {
+        uint256 n = 3;
+        HelixTypes.Intent[] memory intents = new HelixTypes.Intent[](n);
+        bytes[] memory sigs = new bytes[](n);
+        for (uint256 i; i < n; ++i) {
+            intents[i] = buildIntent(lps[i], 80_000e18, 30_000, 0, 100 + i);
+            sigs[i] = signIntent(pks[i], intents[i]);
+        }
+        bytes32 matchId = hook.submitMatch(intents, sigs);
+
+        oracle.setPrice(poolId, 0.6e18); // everyone enters at the low price
+        for (uint256 i; i < n; ++i) {
+            enterBalanced(matchId, lps[i], (i + 1) * 5_000e18);
+        }
+
+        uint256 totalMargin;
+        for (uint256 i; i < n; ++i) {
+            totalMargin += registry.marginOf(matchId, lps[i]);
+        }
+
+        HelixTypes.Match memory m = hook.getMatch(matchId);
+        oracle.setPrice(poolId, 1.8e18); // settle at the high price (3x move, within the 300% bound)
+        vm.warp(m.epochEnd + 1);
+
+        uint256[] memory before = new uint256[](n);
+        for (uint256 i; i < n; ++i) {
+            before[i] = valueToken.balanceOf(lps[i]);
+        }
+        address settler = makeAddr("settler");
+        vm.prank(settler);
+        hook.settle(matchId); // must NOT revert
+
+        uint256 paidOut = valueToken.balanceOf(settler);
+        for (uint256 i; i < n; ++i) {
+            paidOut += valueToken.balanceOf(lps[i]) - before[i];
+        }
+        assertEq(paidOut, totalMargin, "exact conservation under extreme drift");
+    }
+
     function testFuzz_settlementConservesValue(
         uint8 nRaw,
         uint256 seed,

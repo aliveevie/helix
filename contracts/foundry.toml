@@ -14,7 +14,7 @@ gas_reports = ["HelixHook", "SettlementRegistry", "CircuitBreaker", "ReputationA
 fs_permissions = [{ access = "read", path = "./out" }]
 
 [profile.default.fuzz]
-runs = 512
+runs = 2000
 max_test_rejects = 200000
 
 [profile.ci.fuzz]

@@ -379,7 +379,9 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
             }
         }
 
-        int256[] memory adjustments = Mutualization.adjustments(il, sizes, m.rho);
+        // Solvency-bound ρ to the posted margins so settlement can never under-fund a member.
+        uint256 effRho = _solventRho(matchId, lps, il, sizes, ilTotal, m.rho);
+        int256[] memory adjustments = Mutualization.adjustments(il, sizes, effRho);
 
         m.status = HelixTypes.MatchStatus.SETTLED; // effects before external calls
 
@@ -477,6 +479,50 @@ contract HelixHook is BaseHook, IHelixHook, EIP712, ReentrancyGuard {
             if (m.lps[i] == lp) return i;
         }
         revert("HELIX: not member");
+    }
+
+    /// @dev Largest ρ (≤ configured) under which no member's mutualization payment exceeds its posted
+    ///      margin minus its settler-fee share — guaranteeing settlement is ALWAYS solvent regardless of
+    ///      realized price drift (absolute IL scales with hold-value, so a fixed margin ratio cannot
+    ///      cover every path). In benign markets this returns the configured ρ unchanged; in extreme
+    ///      drift it scales ρ down so members retain more of their own outcome — the only
+    ///      conservation-preserving option when margins can't fund full mutualization. Zero-sum and
+    ///      conservation are unaffected (the adjustment vector is still exactly zero-sum at any ρ).
+    function _solventRho(
+        bytes32 matchId,
+        address[] memory lps,
+        uint256[] memory il,
+        uint256[] memory sizes,
+        uint256 ilTotal,
+        uint256 rho
+    ) internal view returns (uint256) {
+        uint256 n = lps.length;
+        uint256 sizeTotal;
+        uint256 totalMargin;
+        for (uint256 i; i < n; ++i) {
+            sizeTotal += sizes[i];
+            totalMargin += registry.marginOf(matchId, lps[i]);
+        }
+        if (sizeTotal == 0 || rho == 0) return rho;
+
+        uint256 feeWad = Math.mulDiv(ilTotal, registry.settlerFeeBps(), BPS);
+        if (feeWad > totalMargin) feeWad = totalMargin;
+
+        uint256 buffer = 1e9; // wei of slack so the zero-sum rounding residual can't tip a payer insolvent
+        uint256 lambda = WAD; // scaling of ρ, WAD-scaled; only decreases
+        for (uint256 i; i < n; ++i) {
+            uint256 fair = Math.mulDiv(ilTotal, sizes[i], sizeTotal);
+            if (il[i] >= fair) continue; // receiver, never insolvent
+            uint256 payAtRho = Math.mulDiv(rho, fair - il[i], BPS); // payment at full ρ
+            if (payAtRho == 0) continue;
+            uint256 marginI = registry.marginOf(matchId, lps[i]);
+            uint256 feeI = totalMargin == 0 ? 0 : Math.mulDiv(feeWad, marginI, totalMargin);
+            uint256 avail = marginI > feeI + buffer ? marginI - feeI - buffer : 0;
+            uint256 lambdaI = Math.mulDiv(avail, WAD, payAtRho);
+            if (lambdaI < lambda) lambda = lambdaI;
+        }
+        if (lambda >= WAD) return rho;
+        return Math.mulDiv(rho, lambda, WAD);
     }
 
     /// @dev requiredRatio covers ρ·worst-IL plus the settler-fee headroom, floored at the config margin.
