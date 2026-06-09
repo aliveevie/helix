@@ -20,6 +20,20 @@ export function notional(intent: Intent): number {
   return Number(intent.maxSize) / 1e18;
 }
 
+/**
+ * Absolute impermanent loss (token1 units) of a balanced `notional` position entered at `p0` and
+ * marked at `p1` — the exact CPMM closed form the on-chain `ILMath` uses:
+ *   x0 = (N/2)/p0, y0 = N/2 ; IL = (x0·p1 + y0) − 2·√(x0·y0·p1).
+ */
+export function ilAbsolute(notionalValue: number, p0: number, p1: number): number {
+  if (p0 <= 0 || p1 <= 0) return 0;
+  const y0 = notionalValue / 2;
+  const x0 = notionalValue / 2 / p0;
+  const vHold = x0 * p1 + y0;
+  const vPool = 2 * Math.sqrt(x0 * y0 * p1);
+  return Math.max(0, vHold - vPool);
+}
+
 /** IL "volatility" proxy of a position: the worst-case IL magnitude its drift bound admits. */
 export function ilVolatility(intent: Intent): number {
   return maxILFraction(Number(intent.maxDriftBps)) * notional(intent);

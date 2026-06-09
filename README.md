@@ -162,9 +162,18 @@ Cross-pool correlation matrix (trailing returns):
      ARB/USDC      -0.44      -0.42       1.00
 
 Formed 3 basket(s):
-  Basket 1  pool=ETH/USDC  members=3  variance↓=18.3%  repFloor=0
+  Basket 1  pool=ETH/USDC  members=3  div-score=18.3  repFloor=0
   ...
+
+Monte-Carlo: measured IL-variance reduction (5000 scenarios, σ=0.40)
+  ρ=0.50  →  ex-ante IL variance falls 40%  (ex-post per slot: 44%, 16%)
+  ρ=1.00  →  ex-ante IL variance falls 54%  (ex-post per slot: 73%, -61%)
 ```
+
+> **Why an LP opts in (the insurance thesis).** *Ex-ante* — before you know whether you'll be the
+> well-timed or the unlucky LP — pooling cuts your expected IL variance (40–54% above). *Ex-post* it's
+> zero-sum: some slots win, some pay. At moderate ρ the trade is Pareto-improving for both slots
+> (ρ=0.5 → 44% / 16%); ρ keeps skin in the game. This is measured, not assumed (`simulate.ts`).
 
 ---
 

@@ -8,7 +8,7 @@
 import { type Address, type Hex, keccak256, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { buildIntent, helixDomain, IntentEip712Types, type Intent } from "@helix/sdk";
-import { MatchingEngine, SyntheticPriceProvider, type SignedIntent } from "./index.js";
+import { MatchingEngine, SyntheticPriceProvider, lognormalPrices, simulateBasket, type SignedIntent } from "./index.js";
 
 const HOOK = "0x1640000000000000000000000000000000004444" as Address;
 const CHAIN_ID = 1301;
@@ -88,7 +88,7 @@ async function main() {
   baskets.forEach((b, i) => {
     console.log(
       `  Basket ${i + 1}  pool=${keyToName(b.pool)}  members=${b.members.length}  ` +
-        `variance↓=\x1b[32m${b.varianceReductionPct.toFixed(1)}%\x1b[0m  repFloor=${b.repFloor}`,
+        `div-score=\x1b[32m${b.varianceReductionPct.toFixed(1)}\x1b[0m  repFloor=${b.repFloor}`,
     );
     b.members.forEach((m, j) => {
       const sizeEth = Number(m.intent.maxSize) / 1e18;
@@ -99,6 +99,23 @@ async function main() {
     });
     console.log("");
   });
+
+  // Monte-Carlo: MEASURED IL-variance reduction (not an assumption).
+  const prices = lognormalPrices(5000, 0.4, 7);
+  console.log("\x1b[36m═══ Monte-Carlo: measured IL-variance reduction (5000 scenarios, σ=0.40) ═══\x1b[0m");
+  console.log("  Helix is IL insurance: before you know which slot you'll hold, pooling cuts your expected IL variance.");
+  const basket = [
+    { entryPrice: 0.7, size: 1000 },
+    { entryPrice: 1.4, size: 1000 },
+  ];
+  for (const rho of [0.5, 1.0]) {
+    const sim = simulateBasket(basket, rho, prices);
+    console.log(
+      `  ρ=${rho.toFixed(2)}  →  ex-ante IL variance falls \x1b[32m${sim.exAnteReductionPct.toFixed(0)}%\x1b[0m ` +
+        `(ex-post per slot: ${sim.perMember.map((m) => m.reductionPct.toFixed(0) + "%").join(", ")})`,
+    );
+  }
+  console.log("    → ex-post some slots win and some pay (zero-sum) — that's the insurance working, and ρ<1 keeps skin in the game.\n");
 }
 
 function keyToName(key: string): string {
