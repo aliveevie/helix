@@ -27,6 +27,13 @@
     ],
     "submitMatchTx": "0x35554f84611091df678840440a0d5b3597c970dac1242657488960434f971b1d"
   },
+  "chainlink": {
+    "ChainlinkOracle": "0xf9D3cf14158a9F7afC463752F5290369Ef101D66",
+    "feed": "0x694AA1769357215DE4FAC081bf1f309aDC325306",
+    "feedDescription": "Chainlink ETH/USD (Sepolia)",
+    "demoPoolId": "0xa0fa52f4cfb02af7ae8dcf5a3ed28170a0ccb98b3170b31ddcee75763250e379",
+    "note": "Live IHelixOracle adapter reading the canonical Sepolia ETH/USD Data Feed (Sourcify-verified). price() returns the real ETH price in WAD."
+  },
   "explorer": "https://sepolia.etherscan.io",
   "note": "Owner = deployer (CREATE2 ownership fixed). PoolManager + ValueToken reused from the first deploy; oracle/breaker/reputation/registry/hook are the corrected set. A prior (superseded) hook at 0xdDE951F94FbC849DbeED95e94da9212A03bFd640 had owner = CREATE2 factory and is abandoned."
 }

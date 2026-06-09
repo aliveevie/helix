@@ -38,6 +38,7 @@ the deployer (admin functions live).
 | MockOracle | [`0x3334aeA99e7B838bCecb7b3931245052639D4599`](https://sepolia.etherscan.io/address/0x3334aeA99e7B838bCecb7b3931245052639D4599) |
 | Value token (USDV, 18-dec) | [`0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD`](https://sepolia.etherscan.io/address/0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD) |
 | MockPoolManager | [`0x1259f0e1D2EB8152966b85318c0a71CeD258e692`](https://sepolia.etherscan.io/address/0x1259f0e1D2EB8152966b85318c0a71CeD258e692) |
+| **ChainlinkOracle** (live ETH/USD) | [`0xf9D3cf14158a9F7afC463752F5290369Ef101D66`](https://sepolia.etherscan.io/address/0xf9D3cf14158a9F7afC463752F5290369Ef101D66) → reads the real [Chainlink ETH/USD feed](https://sepolia.etherscan.io/address/0x694AA1769357215DE4FAC081bf1f309aDC325306) (`price()` = live ETH price in WAD) |
 
 A live, permissionless **`submitMatch`** formed a 2-LP basket on-chain:
 [tx `0x35554f…`](https://sepolia.etherscan.io/tx/0x35554f84611091df678840440a0d5b3597c970dac1242657488960434f971b1d)
