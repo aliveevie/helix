@@ -75,8 +75,24 @@ contract HelixHandler is Test {
         return abi.encodePacked(r, s, v);
     }
 
+    PoolKey public key2;
+    PoolId public poolId2;
+    bool public hasSecondPool;
+
+    function setSecondPool(PoolKey memory k) external {
+        key2 = k;
+        poolId2 = k.toId();
+        hasSecondPool = true;
+    }
+
     function _enter(bytes32 matchId, address lp, uint256 notional, uint256 p0) internal {
-        oracle.setPrice(poolId, p0);
+        _enterIn(key, poolId, matchId, lp, notional, p0);
+    }
+
+    function _enterIn(PoolKey memory k, PoolId pid, bytes32 matchId, address lp, uint256 notional, uint256 p0)
+        internal
+    {
+        oracle.setPrice(pid, p0);
         uint256 y0 = notional / 2;
         uint256 x0 = Math.mulDiv(notional / 2, 1e18, p0);
         BalanceDelta delta = toBalanceDelta(-int128(int256(x0)), -int128(int256(y0)));
@@ -84,8 +100,37 @@ contract HelixHandler is Test {
             ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1e18, salt: bytes32(0)});
         uint256 balBefore = valueToken.balanceOf(address(registry));
         vm.prank(address(pm));
-        hook.afterAddLiquidity(lp, key, params, delta, toBalanceDelta(0, 0), abi.encode(matchId, lp));
+        hook.afterAddLiquidity(lp, k, params, delta, toBalanceDelta(0, 0), abi.encode(matchId, lp));
         totalDeposited += valueToken.balanceOf(address(registry)) - balBefore;
+    }
+
+    /// @notice Create a 2-member CROSS-POOL match (member 0 in pool A, member 1 in pool B) and enter both.
+    function createCrossPoolAndEnter(uint256 seed) public {
+        if (!hasSecondPool) return;
+        address lp0 = lps[seed % lps.length];
+        uint256 k0 = pks[seed % lps.length];
+        address lp1 = lps[(seed + 1) % lps.length];
+        uint256 k1 = pks[(seed + 1) % lps.length];
+        if (lp0 == lp1) return;
+
+        HelixTypes.Intent[] memory intents = new HelixTypes.Intent[](2);
+        bytes[] memory sigs = new bytes[](2);
+        intents[0] = _intent(lp0, nonceCursor++); // pool A
+        intents[1] = _intent(lp1, nonceCursor++);
+        intents[1].pool = poolId2; // pool B
+        sigs[0] = _sign(k0, intents[0]);
+        sigs[1] = _sign(k1, intents[1]);
+
+        try hook.submitMatch(intents, sigs) returns (bytes32 matchId) {
+            uint256 nA = bound(uint256(keccak256(abi.encode(seed, "xa"))), 100e18, 30_000e18);
+            uint256 nB = bound(uint256(keccak256(abi.encode(seed, "xb"))), 100e18, 30_000e18);
+            uint256 pA = bound(uint256(keccak256(abi.encode(seed, "pa"))), 0.7e18, 1.5e18);
+            uint256 pB = bound(uint256(keccak256(abi.encode(seed, "pb"))), 0.7e18, 1.5e18);
+            _enterIn(key, poolId, matchId, lp0, nA, pA);
+            _enterIn(key2, poolId2, matchId, lp1, nB, pB);
+            openMatches.push(matchId);
+            allMatches.push(matchId);
+        } catch {}
     }
 
     /// @notice Create a 2–3 member match and enter all members at randomized entry prices.
@@ -138,6 +183,7 @@ contract HelixHandler is Test {
         }
         if (block.timestamp <= m.epochEnd) vm.warp(m.epochEnd + 1);
         oracle.setPrice(poolId, bound(uint256(keccak256(abi.encode(seed, "s"))), 0.7e18, 1.5e18));
+        if (hasSecondPool) oracle.setPrice(poolId2, bound(uint256(keccak256(abi.encode(seed, "s2"))), 0.7e18, 1.5e18));
 
         uint256 balBefore = valueToken.balanceOf(address(registry));
         try hook.settle(matchId) {
@@ -282,6 +328,11 @@ contract HelixInvariant is Test {
         vm.prank(address(pm));
         hook.afterInitialize(address(this), key, uint160(1 << 96), 0);
 
+        // A second pool (same tokens, different fee) so the invariants cover CROSS-POOL baskets too.
+        PoolKey memory key2 = PoolKey({currency0: c0, currency1: c1, fee: 500, tickSpacing: 10, hooks: IHooks(hookAddr)});
+        vm.prank(address(pm));
+        hook.afterInitialize(address(this), key2, uint160(1 << 96), 0);
+
         address[] memory lps = new address[](4);
         uint256[] memory pks = new uint256[](4);
         for (uint256 i; i < 4; ++i) {
@@ -294,6 +345,7 @@ contract HelixInvariant is Test {
         }
 
         handler = new HelixHandler(hook, registry, oracle, pm, valueToken, key, lps, pks);
+        handler.setSecondPool(key2);
         targetContract(address(handler));
     }
 
