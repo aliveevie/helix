@@ -14,12 +14,13 @@ construction** — enforced as Foundry invariants.
 
 | Component | Status |
 | --- | --- |
-| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 33 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
+| Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 34 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + basket optimizer) | ✅ builds · 11 tests · runnable demo |
 | Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
 | CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
 | Live deployment | ✅ Sepolia, all contracts source-verified on Sourcify |
+| Real Uniswap v4 integration | ✅ full lifecycle (init → add-liquidity → swap → settle) against the canonical Sepolia v4 `PoolManager` (fork test) |
 
 ---
 
@@ -46,6 +47,28 @@ A live, permissionless **`submitMatch`** formed a 2-LP basket on-chain:
 
 ---
 
+## Seeing it work
+
+**The value loop, with real numbers** (`forge test --match-contract Showcase -vv`): three LPs in one pool
+enter at very different prices, so their impermanent loss is wildly dispersed — then ρ-mutualization
+converges every one of them to the basket's capital-weighted average, conservation-checked on-chain:
+
+```
+LP      entryPx   standalone IL rate      after ρ=100%
+alice   1.00      45 bps  (0.45%)         602 bps
+bob     2.00      254 bps (2.54%)    →    602 bps
+carol   0.50      1508 bps (15.08%)       602 bps
+IL-rate variance:  417396  →  0     (100% reduction)
+on-chain settle: payouts == margins  (conservation holds)
+```
+
+**Against the real Uniswap v4 PoolManager** (`FORK_RPC_URL=<sepolia> forge test --match-test test_fork_fullLifecycleAgainstRealV4 -vv`):
+forks Sepolia and runs the complete loop — `initialize` → real `afterAddLiquidity` entry → real swap
+(`afterSwap`/TWAP) → `settle` — against the canonical v4 `PoolManager` at `0xE03A1074…3543`. The hook is
+load-bearing on actual Uniswap, not a mock.
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -54,7 +77,7 @@ flowchart TB
         ME["Matching Engine<br/>(TS / viem)"]
         SDK["Client SDK<br/>intent signing"]
     end
-    subgraph ORIGIN["Origin chain (Unichain)"]
+    subgraph ORIGIN["Origin chain (Sepolia testnet · Unichain in prod)"]
         HOOK["Helix Hook"]
         REG["Settlement Registry"]
         REP["Reputation (ERC-8004)"]
@@ -109,7 +132,7 @@ helix/
 ```bash
 cd contracts
 ./setup.sh            # vendors forge-std, v4-core, v4-periphery, openzeppelin, solmate
-forge test            # 33 passing: unit, fuzz, invariant, integration
+forge test            # 34 passing + 3 fork (gated)
 forge script script/Deploy.s.sol      # dry-run: mines a permission-encoding hook address + wires everything
 ```
 
@@ -212,6 +235,18 @@ pay out more than it escrows.
 - **RSC vendored interface.** `HelixReactive` targets the Reactive Network SDK via a minimal vendored
   surface (`ReactiveLib`), so its vol/correlation logic is unit-tested locally; swap the import for
   `@reactivenetwork/reactive-lib` at deploy time.
+
+### Scope (what's real today vs roadmap)
+
+- **On-chain baskets are single-pool.** v1 mutualizes IL among LPs of the *same* pool who entered at
+  different prices/ranges — which already produces strong convergence (see the showcase: 0.45%→15.08%
+  dispersion → one shared rate). The matching engine *also* computes a cross-pool correlation matrix; its
+  on-chain use (cross-asset, correlation-diversified baskets) is the next milestone, not a current claim.
+- **IL model is full-range CPMM**, a clean baseline for *relative* redistribution. A
+  concentrated-liquidity-aware IL (and a fees term) is a planned refinement; the fork lifecycle already
+  runs on real concentrated v4 positions and snapshots their actual token composition.
+- **Cross-chain (CCTP)** and **deploying the RSC to Reactive Network** are specified and locally
+  simulated; they are not yet live.
 
 ---
 
