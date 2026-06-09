@@ -1,12 +1,12 @@
 {
-  "comment": "Helix deployment on Sepolia (chainId 11155111). Override per-environment via VITE_* env vars. Set all to zero for mock mode.",
+  "comment": "Helix v2 (cross-pool) deployment on Sepolia (chainId 11155111). Override per-environment via VITE_* env vars. Set all to zero for mock mode.",
   "chainId": 11155111,
   "addresses": {
-    "hook": "0x0E00cAc14C70Cf2EA46b33fe17E55Ac02DEb5640",
-    "registry": "0x8f450Fc17Fa1f84d8b69bC9816C543be503C8195",
-    "reputation": "0x7584Ec7599c39600b92d663B95fD1887ee48D87D",
-    "breaker": "0x7FBB5B8D97F1B562C7e2b1fDD30A3BEFBc7fBdf2",
-    "oracle": "0x3334aeA99e7B838bCecb7b3931245052639D4599",
+    "hook": "0x6704c3F3FeF5F7596E68470B3430b14b8c99d640",
+    "registry": "0xEbeea487E52578A35668efEcfAEE8dC6082baa2d",
+    "reputation": "0x2996cFF1F07aFFc2D5ddBD530603F58edbd59b89",
+    "breaker": "0x3c02963015cf88c12Ffb2a44Ed4e04AaE2f1dF7c",
+    "oracle": "0x252F8edDf8A208169787B95FDC63a68E0E08875B",
     "valueToken": "0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD",
     "poolManager": "0x1259f0e1D2EB8152966b85318c0a71CeD258e692"
   }

@@ -31,23 +31,20 @@ the deployer (admin functions live).
 
 | Contract | Address |
 | --- | --- |
-| **HelixHook** | [`0x0E00cAc14C70Cf2EA46b33fe17E55Ac02DEb5640`](https://sepolia.etherscan.io/address/0x0E00cAc14C70Cf2EA46b33fe17E55Ac02DEb5640) |
-| SettlementRegistry | [`0x8f450Fc17Fa1f84d8b69bC9816C543be503C8195`](https://sepolia.etherscan.io/address/0x8f450Fc17Fa1f84d8b69bC9816C543be503C8195) |
-| ReputationAccumulator | [`0x7584Ec7599c39600b92d663B95fD1887ee48D87D`](https://sepolia.etherscan.io/address/0x7584Ec7599c39600b92d663B95fD1887ee48D87D) |
-| CircuitBreaker | [`0x7FBB5B8D97F1B562C7e2b1fDD30A3BEFBc7fBdf2`](https://sepolia.etherscan.io/address/0x7FBB5B8D97F1B562C7e2b1fDD30A3BEFBc7fBdf2) |
-| MockOracle | [`0x3334aeA99e7B838bCecb7b3931245052639D4599`](https://sepolia.etherscan.io/address/0x3334aeA99e7B838bCecb7b3931245052639D4599) |
+| **HelixHook** (v2, cross-pool) | [`0x6704c3F3FeF5F7596E68470B3430b14b8c99d640`](https://sepolia.etherscan.io/address/0x6704c3F3FeF5F7596E68470B3430b14b8c99d640) |
+| SettlementRegistry | [`0xEbeea487E52578A35668efEcfAEE8dC6082baa2d`](https://sepolia.etherscan.io/address/0xEbeea487E52578A35668efEcfAEE8dC6082baa2d) |
+| ReputationAccumulator (ERC-8004) | [`0x2996cFF1F07aFFc2D5ddBD530603F58edbd59b89`](https://sepolia.etherscan.io/address/0x2996cFF1F07aFFc2D5ddBD530603F58edbd59b89) |
+| CircuitBreaker | [`0x3c02963015cf88c12Ffb2a44Ed4e04AaE2f1dF7c`](https://sepolia.etherscan.io/address/0x3c02963015cf88c12Ffb2a44Ed4e04AaE2f1dF7c) |
+| MockOracle | [`0x252F8edDf8A208169787B95FDC63a68E0E08875B`](https://sepolia.etherscan.io/address/0x252F8edDf8A208169787B95FDC63a68E0E08875B) |
 | Value token (USDV, 18-dec) | [`0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD`](https://sepolia.etherscan.io/address/0x15cc1B894b3A3a668211B43172Ce034E2D7d5BAD) |
 | MockPoolManager | [`0x1259f0e1D2EB8152966b85318c0a71CeD258e692`](https://sepolia.etherscan.io/address/0x1259f0e1D2EB8152966b85318c0a71CeD258e692) |
 | **ChainlinkOracle** (live ETH/USD) | [`0xf9D3cf14158a9F7afC463752F5290369Ef101D66`](https://sepolia.etherscan.io/address/0xf9D3cf14158a9F7afC463752F5290369Ef101D66) → reads the real [Chainlink ETH/USD feed](https://sepolia.etherscan.io/address/0x694AA1769357215DE4FAC081bf1f309aDC325306) (`price()` = live ETH price in WAD) |
 
-A live, permissionless **`submitMatch`** formed a 2-LP basket on-chain:
-[tx `0x35554f…`](https://sepolia.etherscan.io/tx/0x35554f84611091df678840440a0d5b3597c970dac1242657488960434f971b1d)
-(matchId `0xfcbc99…a7a0`, demo pool `0xc5c1d5…da2e5`). Full record, config and tx hashes in
-[`deployments/sepolia.json`](deployments/sepolia.json). A copy-paste UI brief for Lovable/v0 is in
-[`docs/LOVABLE_PROMPT.md`](docs/LOVABLE_PROMPT.md).
-
-> The live addresses above are the single-pool build; the cross-pool upgrade is on `main` and proven
-> against the real v4 PoolManager by the fork test — redeploy with `script/Deploy.s.sol` to publish it.
+A live, permissionless **cross-pool `submitMatch`** formed one basket spanning TWO pools (ETH/USDC +
+ARB/USDC) on-chain: [tx `0x3daa77…`](https://sepolia.etherscan.io/tx/0x3daa7796c0333002390db5aa339549726b7430bda1bcecdb70f6d5066235339b)
+(matchId `0x4c8e09…b441` — `getMatch().pools` returns two distinct poolIds). Full record, demo pools,
+config, tx hashes and superseded versions in [`deployments/sepolia.json`](deployments/sepolia.json).
+A copy-paste UI brief for Lovable/v0 is in [`docs/LOVABLE_PROMPT.md`](docs/LOVABLE_PROMPT.md).
 
 ---
 
