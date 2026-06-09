@@ -45,6 +45,9 @@ A live, permissionless **`submitMatch`** formed a 2-LP basket on-chain:
 [`deployments/sepolia.json`](deployments/sepolia.json). A copy-paste UI brief for Lovable/v0 is in
 [`docs/LOVABLE_PROMPT.md`](docs/LOVABLE_PROMPT.md).
 
+> The live addresses above are the single-pool build; the cross-pool upgrade is on `main` and proven
+> against the real v4 PoolManager by the fork test — redeploy with `script/Deploy.s.sol` to publish it.
+
 ---
 
 ## Seeing it work
