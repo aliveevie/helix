@@ -120,8 +120,7 @@ helix/
 ├── packages/
 │   ├── sdk/              @helix/sdk — EIP-712 intents, ABIs, typed HelixClient (viem)
 │   └── matching-engine/  @helix/matching-engine — correlation matrix + basket optimizer + CLI
-└── apps/
-    └── frontend/         @helix/frontend — the Helix UI (TanStack Start · wagmi · live Sepolia v2)
+└── frontend/             @helix/frontend — the Helix UI (TanStack Start · wagmi · live Sepolia v2)
 ```
 
 ---

@@ -9,7 +9,7 @@ picture; this file captures the non-obvious operational facts.
 - `contracts/` — Foundry project (Solidity 0.8.26). The protocol core.
 - `packages/sdk/` — `@helix/sdk` (EIP-712 intents, ABIs, viem client).
 - `packages/matching-engine/` — `@helix/matching-engine` (correlation + basket optimizer + CLI).
-- `apps/frontend/` — `@helix/frontend` (Vite + React + wagmi).
+- `frontend/` — `@helix/frontend` (TanStack Start + wagmi, the Helix UI).
 
 ## Build & test
 
