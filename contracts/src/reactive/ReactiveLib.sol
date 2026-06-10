@@ -59,6 +59,10 @@ abstract contract AbstractReactive is IReactive {
         _;
     }
 
+    /// @notice Accept REACT so the contract can pay the Reactive Network for its subscriptions
+    ///         (the subscription service debits the reactive contract — AbstractPayer model).
+    receive() external payable {}
+
     function _emitCallback(uint256 chainId, address _contract, uint64 gasLimit, bytes memory payload) internal {
         emit Callback(chainId, _contract, gasLimit, payload);
     }

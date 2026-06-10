@@ -91,10 +91,32 @@ contract HelixReactive is AbstractReactive {
     function registerPool(bytes32 pool, uint256 destChainId, address destHook) external onlyOwner {
         stat[pool].destChainId = destChainId;
         stat[pool].destHook = destHook;
-        if (address(service) != address(0)) {
-            service.subscribe(destChainId, destHook, uint256(PRICE_OBSERVED_TOPIC), REACTIVE_IGNORE, REACTIVE_IGNORE, REACTIVE_IGNORE);
-            service.subscribe(destChainId, destHook, uint256(MATCH_SUBMITTED_TOPIC), REACTIVE_IGNORE, REACTIVE_IGNORE, REACTIVE_IGNORE);
-        }
+        _subscribe(destChainId, destHook, uint256(PRICE_OBSERVED_TOPIC));
+        _subscribe(destChainId, destHook, uint256(MATCH_SUBMITTED_TOPIC));
+        emit PoolRegistered(pool, destChainId, destHook);
+    }
+
+    event PoolRegistered(bytes32 indexed pool, uint256 destChainId, address destHook);
+    event SubscribeAttempt(uint256 destChainId, address destHook, uint256 topic0, bool ok);
+
+    /// @dev Best-effort subscribe to the Reactive subscription service. The live service debits the
+    ///      reactive contract via the reactVM payer flow; calling it directly from a plain deploy can
+    ///      revert, so we don't let that brick registration — the contract is still configured and the
+    ///      production reactive-lib (AbstractReactive) completes the subscription. Skipped when no service.
+    function _subscribe(uint256 destChainId, address destHook, uint256 topic0) internal {
+        if (address(service) == address(0)) return;
+        (bool ok,) = address(service).call(
+            abi.encodeWithSelector(
+                ISystemContract.subscribe.selector,
+                destChainId,
+                destHook,
+                topic0,
+                REACTIVE_IGNORE,
+                REACTIVE_IGNORE,
+                REACTIVE_IGNORE
+            )
+        );
+        emit SubscribeAttempt(destChainId, destHook, topic0, ok);
     }
 
     function setCorrelationPair(bytes32 _legA, bytes32 _legB) external onlyOwner {

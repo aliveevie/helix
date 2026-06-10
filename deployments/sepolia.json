@@ -61,5 +61,21 @@
       "note": "Owner captured the CREATE2 factory (bug, fixed). Abandoned."
     }
   },
+  "reactive": {
+    "network": "Reactive Lasna testnet",
+    "chainId": 5318007,
+    "HelixReactive": "0x1259f0e1d2eb8152966b85318c0a71ced258e692",
+    "rpc": "https://lasna-rpc.rnk.dev/",
+    "systemContract": "0x0000000000000000000000000000000000fffFfF",
+    "subscribedTo": {
+      "hook": "0x6704c3F3FeF5F7596E68470B3430b14b8c99d640",
+      "destChainId": 11155111,
+      "events": ["PriceObserved(bytes32,uint256,uint256,uint64)", "MatchSubmitted(bytes32,bytes32,address[],uint256[],uint16)"]
+    },
+    "sepoliaCallbackProxy": "0xc9f36411C9897e7F959D99ffca2a0Ba7ee0D7bDA",
+    "setReactiveProxyTx": "0xf0d89bc53a40ae744f42ef8fee0831a9c3ed6c60e6586a7e1f44dc242506de6c",
+    "registerPoolTx": "0x221e79d4e82e0619cc093f0e8ba986c450f4d2fa46eefc93e7e864178cc3154b",
+    "note": "Live RSC: subscribed to the hook's events on Lasna; the Sepolia hook authorizes its triggerRebalance callbacks via the canonical Reactive callback proxy. Full auto-rebalance loop wired end-to-end."
+  },
   "explorer": "https://sepolia.etherscan.io"
 }

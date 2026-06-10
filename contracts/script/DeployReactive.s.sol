@@ -22,9 +22,14 @@ contract DeployReactive is Script {
         uint256 destChainId = vm.envOr("DEST_CHAIN_ID", uint256(11155111)); // Sepolia
         bytes32 pool = vm.envOr("POOL_ID", keccak256("HELIX-ETH-USDC-CHAINLINK"));
 
+        uint256 funding = vm.envOr("RSC_FUNDING", uint256(2 ether)); // REACT to cover subscriptions
+
         vm.startBroadcast();
         // vmContext = true: we're deploying on the Reactive Network, where `react` is VM-driven.
         HelixReactive rsc = new HelixReactive(ISystemContract(REACTIVE_SYSTEM), true);
+        // Fund the reactive contract so the subscription service can debit it (AbstractPayer model).
+        (bool ok,) = payable(address(rsc)).call{value: funding}("");
+        require(ok, "fund RSC failed");
         rsc.registerPool(pool, destChainId, hookAddr); // subscribes to the hook's events + sets callback target
         vm.stopBroadcast();
 

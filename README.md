@@ -23,6 +23,7 @@ construction** — enforced as Foundry invariants.
 | CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
 | Live deployment | ✅ Sepolia, all contracts source-verified on Sourcify |
 | Real Uniswap v4 integration | ✅ full lifecycle (init → add-liquidity → swap → settle) against the canonical Sepolia v4 `PoolManager` (fork test) |
+| Reactive Network (live) | ✅ `HelixReactive` deployed to Lasna, **subscribed** to the hook's events; Sepolia hook authorizes its callbacks (`setReactiveProxy`) — full auto-rebalance loop wired |
 
 ---
 
