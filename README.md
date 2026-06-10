@@ -17,7 +17,7 @@ construction** — enforced as Foundry invariants.
 | Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 41 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + cross-pool optimizer + Monte-Carlo) | ✅ builds · 16 tests · runnable demo |
-| Demo frontend (Vite · React · wagmi) | ✅ typecheck · build green |
+| Frontend UI (TanStack Start · wagmi, live Sepolia v2) | ✅ typecheck · build green |
 | CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
 | Live deployment | ✅ Sepolia, all contracts source-verified on Sourcify |
 | Real Uniswap v4 integration | ✅ full lifecycle (init → add-liquidity → swap → settle) against the canonical Sepolia v4 `PoolManager` (fork test) |
@@ -121,7 +121,7 @@ helix/
 │   ├── sdk/              @helix/sdk — EIP-712 intents, ABIs, typed HelixClient (viem)
 │   └── matching-engine/  @helix/matching-engine — correlation matrix + basket optimizer + CLI
 └── apps/
-    └── frontend/         @helix/frontend — Vite + React + wagmi dashboard
+    └── frontend/         @helix/frontend — the Helix UI (TanStack Start · wagmi · live Sepolia v2)
 ```
 
 ---
@@ -145,8 +145,8 @@ pnpm install          # installs all workspace packages
 # Matching engine — offline demo (no chain needed): correlation matrix + formed baskets
 pnpm engine
 
-# Frontend — dashboard (boots in mock mode with zero-address config)
-pnpm frontend         # http://localhost:5173
+# Frontend — the Helix UI, wired to the live Sepolia v2 contracts
+pnpm frontend         # http://localhost:8080
 
 # Tests
 pnpm --filter @helix/sdk test
