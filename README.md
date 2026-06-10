@@ -11,13 +11,15 @@ basket's **capital-weighted average IL** instead of absorbing its own in full. R
 construction** — enforced as Foundry invariants.
 
 > No external insurance pool · no perp exposure · no exit from the AMM · no privileged operator.
+>
+> **Live demo:** [helix-ui-five.vercel.app](https://helix-ui-five.vercel.app) · **Contracts:** Sepolia, Sourcify-verified (below)
 
 | Component | Status |
 | --- | --- |
 | Solidity core (hook, registry, reputation, breaker) + RSC | ✅ 41 Foundry tests (unit · fuzz · invariant · integration) + gated fork tests |
 | Client SDK (EIP-712 intents, typed client) | ✅ builds · 3 tests |
 | Matching engine (correlation + cross-pool optimizer + Monte-Carlo) | ✅ builds · 16 tests · runnable demo |
-| Frontend UI (TanStack Start · wagmi, live Sepolia v2) | ✅ typecheck · build green |
+| Frontend UI (TanStack Start · wagmi, live Sepolia v2) | ✅ **live: [helix-ui-five.vercel.app](https://helix-ui-five.vercel.app)** |
 | CI (Foundry + pnpm workspace) | ✅ `.github/workflows/ci.yml` |
 | Live deployment | ✅ Sepolia, all contracts source-verified on Sourcify |
 | Real Uniswap v4 integration | ✅ full lifecycle (init → add-liquidity → swap → settle) against the canonical Sepolia v4 `PoolManager` (fork test) |

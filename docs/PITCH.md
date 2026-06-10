@@ -45,4 +45,4 @@ with authenticated `triggerRebalance`).
 5. **Why it wins** (15s) — permissionless, self-funded, cross-pool, production pathway; the only IL
    mutualization primitive that lives entirely inside Uniswap.
 
-*Repo:* `README.md` · *deploys:* `deployments/sepolia.json` · *UI:* `docs/LOVABLE_PROMPT.md`
+*Live demo:* https://helix-ui-five.vercel.app · *Repo:* https://github.com/aliveevie/helix · *deploys:* `deployments/sepolia.json`
